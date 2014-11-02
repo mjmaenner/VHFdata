@@ -1,4 +1,4 @@
-labs<-read.csv("c:/vhfdata/labs2nov.csv", stringsAsFactors=TRUE)
+labs<-read.csv("c:/vhfdata/lab2nov.csv", stringsAsFactors=FALSE)
 labs$id<-tolower(labs$MSF.or.other.district..)
 labs$id<-gsub("-", "", labs$id)
 labs$id<-gsub(" ", "", labs$id)
@@ -27,14 +27,14 @@ g1<-ggplot(data=labs, aes(x=as.Date(date_test), fill=case_status))+
   geom_histogram(binwidth=7)+theme_bw()+
   scale_fill_brewer(type="qual", palette="Set1")+facet_wrap(~type, ncol=1)+
   scale_x_date(name="Date sample tested (by week)")+
-  ggtitle("Samples processed by CDC Lab, Sierra Leone, Aug - Nov 1, 2014\ngrouped by status (alive/dead) and result")
+  ggtitle(paste("Samples tested by CDC Lab, Sierra Leone, Aug - Nov 2, 2014\ngrouped by status (alive/corpse)\n",now()))
 
 
 g1a<-ggplot(data=labs, aes(x=as.Date(date_test), fill=type))+
   geom_histogram(binwidth=1)+theme_bw()+
-  scale_fill_brewer(type="qual", palette="Set1")+
+  scale_fill_brewer(type="qual", palette="Set2")+
   scale_x_date(name="Date sample tested (by week)")+
-  ggtitle("Daily samples processed by CDC Lab, Sierra Leone, Aug - Nov 1, 2014\nby status (alive/dead)")
+  ggtitle(paste("Daily samples tested by CDC Lab, Sierra Leone, Aug - Nov, 2014\nby status (alive/corpse)\n", now()))
 
 
 
@@ -43,8 +43,8 @@ g2<-ggplot(data=labs, aes(x=as.Date(date_test), fill=case_status))+
   geom_histogram(binwidth=7, position="fill")+theme_bw()+
   scale_fill_brewer(type="qual", palette="Set1")+facet_wrap(~type, ncol=1)+
   scale_x_date(name="Date sample tested (by week)")+
-  scale_y_continuous(name="Proportion of labs processed each week")+
-  ggtitle("Proportion of samples processed by CDC Lab, Sierra Leone, Aug - Nov 1, 2014\ngrouped by status (alive/dead) and result")
+  scale_y_continuous(name="Proportion of labs tested each week")+
+  ggtitle(paste("Proportion of samples tested by CDC Lab, Sierra Leone, Aug - Nov, 2014\ngrouped by status (alive/dead) and result\n",now()))
 
 labs$d<-tolower(as.character(labs$District.of.Origin))
 labs$d <- gsub("\\?", "", labs$d)
@@ -65,12 +65,18 @@ labs$district<-ifelse(labs$d %in% c("kaiyamba","moyamba"), "moyamba", labs$distr
 labs$district<-ifelse(labs$d == "portloko", "portloko", labs$district)
 labs$district<-ifelse(labs$d == "pujehun" , "pujehun", labs$district)
 labs$district<-ifelse(labs$d %in% c("tonkolili","tonkokili"), "tonkolili", labs$district)
-labs$district<-ifelse(labs$d %in% c("freetown","lumley","mountaincut","wa","war","waterloo","wellington","western","westernarea","westernruler","westernrural","westernurban","wr","wru","wrural","wur","wurban","wurban"), "western",labs$district)
+labs$district<-ifelse(labs$d %in% c("freetown","lumley","mountaincut","wa","war","waterloo","wellington","western","westernarea","westernruler","westernrural","westernurban","wr","wru","wrural","wur","wurban","wurban","wu"), "western",labs$district)
 labs$district<-ifelse(labs$d %in% c("","fobey","southern"),"blank/unknown", labs$district)
 
 g3<-ggplot(data=labs, aes(x=as.Date(date_test), fill=type))+
   geom_histogram(binwidth=7)+
   theme_bw()+facet_wrap(~district)+
   scale_fill_brewer(type="qual", palette="Set2")+
-  ggtitle("Samples tested at CDC Lab/nby week and district of origin")
+  ggtitle(paste("Samples tested at CDC Lab by week and district of origin\n",now()))
 
+pdf("c:/vhfdata/results/cdc_lab.pdf",width = 8, height=8)
+  print(g1)
+  print(g2)
+  print(g1a)
+  print(g3)
+dev.off()
