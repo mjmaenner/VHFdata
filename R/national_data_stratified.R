@@ -47,7 +47,7 @@ ggplot(data=VHFcp, aes(x=dDateReport, fill=StatusReport))+geom_histogram(binwidt
   theme_bw()+
   scale_fill_brewer(labels=c("Unknown","Dead","Alive"), type="qual",palette="Dark2", name="Status when\nreported")+
   scale_x_date(name="2014 Date (by week)")+scale_y_continuous("Proportion of weekly cases")
-  
+
 VHFalive<- VHFcase_recode[ VHFcase_recode$StatusReport == 2 & !is.na(VHFcase_recode$StatusReport) 
                            & VHFcase_recode$CaseStatus %in% c("Confirmed","Probable"),]
 
@@ -55,4 +55,3 @@ VHFalive<- VHFcase_recode[ VHFcase_recode$StatusReport == 2 & !is.na(VHFcase_rec
 #447 missing
 library(lubridate)
 VHFalive$onsettoreport<- interval(start = VHFalive$dDateOnset, end = VHFalive$dDateReport)/ddays(1)
-
