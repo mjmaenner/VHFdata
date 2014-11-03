@@ -62,3 +62,5 @@ VHFcase_recode$mdate <- mdy_hms(VHFcase_recode$DateReport)
 msf_match[!(as.character(msf_match$CaseStatus) == as.character(msf_match$FinalStatus.x)) ,c("ID","bo_id", "CaseStatus", "FinalStatus.x","Surname","OtherNames")]
 
 as.character(msf_match[1,"CaseStatus"]) == as.character(msf_match[1,"FinalStatus.x"]) 
+
+

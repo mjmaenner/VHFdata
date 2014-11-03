@@ -262,7 +262,7 @@ sx_frequency_report <- function(VHFlongdata=VHFcase_long, docname="symptoms.pdf"
 VHFdaily <-function(VHFdata=VHFcase_recode, 
                     yesterday=""){
   VHFyesterday<-VHFdata[ VHFdata$cDateReport==mdy(yesterday),]
-  VHFweek<-VHFdata[VHFdata$cDateReport > mdy(yesterday)-days(7) & !is.na(VHFdata$cDateReport),]
+  VHFweek<-VHFdata[VHFdata$cDateReport > mdy(yesterday)-days(30) & !is.na(VHFdata$cDateReport),]
   print(table(VHFyesterday$DateReport, VHFyesterday$CaseStatus))
   print(VHFyesterday[,c("ID","CaseStatus","StatusReport","Surname")])
   VHconfirmed<-VHFdata[ ymd(VHFdata$dDateOutcome)==mdy(yesterday) & !is.na(VHFdata$dDateOutcome) & VHFdata$CaseStatus=="Confirmed",c("ID","CaseStatus", "StatusReport","Surname")]
@@ -275,5 +275,13 @@ VHFdaily <-function(VHFdata=VHFcase_recode,
   #table(VHFweek$CaseStatus)
 }
 
+VHmonth<-VHFcase_recode[month(VHFcase_recode$cDateReport) == 10 & !is.na(VHFcase_recode$cDateReport),]
+ggplot(data=VHmonth, aes(x=as.Date(cDateReport), fill=CaseStatus))+
+  geom_histogram(binwidth=1)+theme_bw()+scale_fill_brewer(type="qual", palette="Set1")
+
+VHmonth_c<-VHmonth[ VHmonth$CaseStatus=="Confirmed",]
+write.csv(VHmonth_c, "c:/vhfdata/past_month_rev.csv", row.names=FALSE)
+
+table(VHmonth_c$VillageOnset)
 #VHFdaily(yesterday="10-28-2014")
 
