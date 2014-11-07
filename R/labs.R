@@ -44,7 +44,7 @@ g1<-ggplot(data=labs, aes(x=as.Date(date_tested), fill=case_status))+
   ggtitle(paste("Samples tested by CDC Lab, Sierra Leone, Aug - Nov 2, 2014\ngrouped by status (alive/corpse)\n",now()))
 
 
-g1a<-ggplot(data=labs, aes(x=as.Date(date_test), fill=type))+
+g1a<-ggplot(data=labs, aes(x=as.Date(date_tested), fill=type))+
   geom_histogram(binwidth=1)+theme_bw()+
   scale_fill_brewer(type="qual", palette="Dark2")+
   scale_x_date(name="Date sample tested (by week)")+
