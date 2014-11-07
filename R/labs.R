@@ -1,4 +1,8 @@
-labs<-read.csv("c:/vhfdata/lab2nov.csv", stringsAsFactors=FALSE)
+#labs<-read.csv("c:/vhfdata/lab2nov.csv", stringsAsFactors=FALSE)
+
+library(xlsx)
+labs<-read.xlsx2("c:/vhfdata/Ebola Lab results_06NOV14_Kenema _CDC_WHO.xlsx",sheetName = "complete list", stringsAsFactors=FALSE)
+
 labs$id<-tolower(labs$MSF.or.other.district..)
 labs$id<-gsub("-", "", labs$id)
 labs$id<-gsub(" ", "", labs$id)
@@ -7,9 +11,18 @@ library(ggplot2)
 library(lubridate)
 library(stringr)
 
-labs$date_test<-dmy(labs$Date.tested)
-labs$date_onset<-dmy(labs$Date.of.symptom.onset)
+labs$date_test_1 <- as.Date(dmy(labs$Date.tested))
+labs$date_test_excel <- as.Date(as.numeric(as.character(labs$Date.tested)),origin="1899-12-30")
+labs$date_tested <- ymd(ifelse(is.na(labs$date_test_1), as.character(labs$date_test_excel), as.character(labs$date_test_1)))
+
+labs$date_onset_1 <- dmy(labs$Date.of.symptom.onset)
+labs$date_onset_excel <- as.Date(as.numeric(as.character(labs$Date.of.symptom.onset)),origin="1899-12-30")
+labs$date_onset <- ymd(ifelse(is.na(labs$date_onset_1), as.character(labs$date_onset_excel), as.character(labs$date_onset_1)))
+
+
+
 table(labs$specimen.type, useNA="always")
+
 
 labs$type<-ifelse(str_detect(tolower(as.character(labs$specimen.type)), "blood"), "alive",
                   ifelse(str_detect(tolower(as.character(labs$specimen.type)), "swab"), "corpse", "other/unknown"))
@@ -24,7 +37,7 @@ labs$case_status<-ifelse(tolower(as.character(labs$Acute...convalescent...not.a.
 
 table(labs$type, labs$specimen.type)
 
-g1<-ggplot(data=labs, aes(x=as.Date(date_test), fill=case_status))+
+g1<-ggplot(data=labs, aes(x=as.Date(date_tested), fill=case_status))+
   geom_histogram(binwidth=7)+theme_bw()+
   scale_fill_brewer(type="qual", palette="Set1")+facet_wrap(~type, ncol=1)+
   scale_x_date(name="Date sample tested (by week)")+
@@ -40,7 +53,7 @@ g1a<-ggplot(data=labs, aes(x=as.Date(date_test), fill=type))+
 
 
 
-g2<-ggplot(data=labs, aes(x=as.Date(date_test), fill=case_status))+
+g2<-ggplot(data=labs, aes(x=as.Date(date_tested), fill=case_status))+
   geom_histogram(binwidth=7, position="fill")+theme_bw()+
   scale_fill_brewer(type="qual", palette="Set1")+facet_wrap(~type, ncol=1)+
   scale_x_date(name="Date sample tested (by week)")+
@@ -71,7 +84,7 @@ labs$district<-ifelse(labs$d %in% c("","fobey","southern"),"blank/unknown", labs
 
 lab_bo<-labs[ labs$district=="bo",]
 
-g3<-ggplot(data=labs, aes(x=as.Date(date_test), fill=type))+
+g3<-ggplot(data=labs, aes(x=as.Date(date_tested), fill=type))+
   geom_histogram(binwidth=7)+
   theme_bw()+facet_wrap(~district)+
   scale_fill_brewer(type="qual", palette="Dark2")+
@@ -83,6 +96,24 @@ g1_bo<-ggplot(data=lab_bo, aes(x=as.Date(date_test), fill=case_status))+
   scale_x_date(name="Date sample tested (by week)")+
   ggtitle(paste("Samples tested by CDC Lab, Bo District, Aug - Nov, 2014\ngrouped by status (alive/corpse)\n",now()))
 
+corpse_df<-data.frame(with(lab_bo, table(case_status, month(as.Date(date_test)), type, useNA="always")))
+corpse_df<-corpse_df[ corpse_df$case_status %in% c("acute","not a case") & !is.na(corpse_df$case_status),]
+corpse_df<-corpse_df[ !is.na(corpse_df$Var2 ) & corpse_df$type %in% c("alive","corpse"),]
+
+write.csv(corpse_df, "c:/vhfdata/corpses.csv", row.names=FALSE)
+
+VHFconfirm<-VHFcase_recode[ VHFcase_recode$CaseStatus == "Confirmed" & !is.na(VHFcase_recode$CaseStatus),]
+VHFconfirm$deathstatus<-with(VHFconfirm, ifelse(StatusReport==1 & !is.na(StatusReport), "corpse", 
+                                         ifelse(StatusAsOfCurrentDate=="Dead", "died after CIF", 
+                                         ifelse(StatusAsOfCurrentDate=="Alive", "Alive or Unknown",              
+                                                       "Alive or Unknown"))))
+
+VHFconfirm$eventmonth<-ifelse(!is.na(month(VHFconfirm$dDateReport)), month(VHFconfirm$dDateReport),
+                              ifelse(!is.na(month(VHFconfirm$dDateOnset)), month(VHFconfirm$dDateOnset), 
+                                     month(VHFconfirm$dDateOutcome)))
+
+
+write.csv(file="c:/vhfdata/deathstatusconfirmed.csv", as.matrix(with(VHFconfirm, table(eventmonth, deathstatus, useNA="always"))))
 
 g1a_bo<-ggplot(data=lab_bo, aes(x=as.Date(date_test), fill=type))+
   geom_histogram(binwidth=1)+theme_bw()+
@@ -108,46 +139,6 @@ g3_bo<-ggplot(data=lab_bo, aes(x=as.Date(date_test), fill=type))+
   ggtitle(paste("Samples tested at CDC Lab by week and type\n",now()))
 
 
-labacute<-labs[ labs$case_status %in% c("acute"),]
-labacute<-labacute[ !is.na(labacute$date_onset),]
-labacute$days_from_onset <- interval(start = labacute$date_onset, end=labacute$date_test)/ddays(1)
-labacute$pcr_i<-labacute$qRT.PCR.I..NP.
-labacute$pcr_i<-ifelse(labacute$pcr_i=="26/25", "25.5",
-                       ifelse(labacute$pcr_i=="32/31", "31.5",
-                       ifelse(labacute$pcr_i=="`16", "16",
-                       ifelse(labacute$pcr_i=="neg", "45", labacute$pcr_i))))
-
-labacute$pcr_ii<-labacute$qRT.PCR.II..VP40.
-labacute$pcr_ii<-ifelse(labacute$pcr_ii=="24/23", "23.5",
-                       ifelse(labacute$pcr_ii=="30/29", "29.5",
-                       ifelse(labacute$pcr_ii=="neg", "45", labacute$pcr_ii)))
-
-labacute$concordance <- ifelse(labacute$pcr_i == 45 | labacute$pcr_ii == 45, "discordant","concordant")
-
-g4<-ggplot(data=labacute, aes(x=days_from_onset, y=as.numeric(as.character(pcr_i))))+
-    geom_jitter(alpha=0.2)+scale_x_continuous(limits=c(0,20))+theme_bw()+
-    geom_smooth(method="loess")+
-    scale_y_continuous(name="PCR I", breaks=seq(0,45,5), labels=c(seq(0,40,5),"Neg"))+
-    ggtitle("PCR I test value among confirmed cases\ncompared to days from symptom onset")
-
-g5<-ggplot(data=labacute, aes(x=days_from_onset, y=as.numeric(as.character(pcr_ii))))+
-  geom_jitter(alpha=0.2)+scale_x_continuous(limits=c(0,20))+theme_bw()+
-  geom_smooth(method="loess")+
-  scale_y_continuous(name="PCR II", breaks=seq(0,45,5), labels=c(seq(0,40,5),"Neg"))+
-  ggtitle("PCR II test value among confirmed cases\ncompared to days from reported symptom onset")
-
-
-g6<-
-  ggplot(data=labacute, aes(x=as.numeric(as.character(pcr_i)), y=as.numeric(as.character(pcr_ii)),color=concordance))+
-  geom_jitter(alpha=0.2)+theme_bw()+
-  geom_abline(intercept=0, slope=1)+
-  scale_color_manual(values=c("concordant"="black","discordant"="red"))+
-  scale_y_continuous(name="PCR II", breaks=seq(0,45,5), labels=c(seq(0,40,5),"Neg"))+
-  scale_x_continuous(name="PCR I", breaks=seq(0,45,5), labels=c(seq(0,40,5),"Neg"))+
-  ggtitle(paste("Concordance between PCR I and PCR II test results\namong", 
-                dim(labacute)[1], "Confirmed Ebola cases tested by CDC Lab "))+
-  coord_equal()+
-  guides(colour = guide_legend(override.aes = list(alpha = 1, size=6)))
 
 
 
@@ -164,8 +155,6 @@ pdf("c:/vhfdata/results/cdc_lab.pdf",width = 8, height=8)
   print(g2)
   print(g1a)
   print(g3)
-  print(g5)
-  print(g6)
+#  print(g5)
+#  print(g6) removed at request of lab
 dev.off()
-
-g3_bo+facet_wrap(~Referred.from, ncol=1)
